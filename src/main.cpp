@@ -1,5 +1,5 @@
 #include <Arduino.h>
-
+#include <Ultrasonic.h>
 #include <Servo.h>
 
 // Motor Pins
@@ -32,6 +32,8 @@
 #define OUT 13 // Color frequency output
 
 Servo myServo;
+
+Ultrasonic ultrasonic(TRIG, ECHO);
 
 bool isStopped = false;
 
@@ -409,8 +411,16 @@ void challenge1() {
     setServoAngle(OPEN);
 }
 
+int distance = 0;
+
 void loop() {
-    challenge1();
-    while (1)
-        ;
+    // challenge1();
+    // while (1)
+    //     ;
+
+    distance = ultrasonic.read();
+  
+    Serial.print("Distance in CM: ");
+    Serial.println(distance);
+    delay(1000);
 }
