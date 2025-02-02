@@ -97,20 +97,10 @@ float getDistance() {
     long duration = pulseIn(ECHO, HIGH);
 
     if (duration == 0) {
-<<<<<<< HEAD
         return 999; // Indicates no valid measurement
     }
 
     // Convert duration to distance in cm (Using formula from timing diagram)
-=======
-        Serial.println("No echo received. Returning max distance.");
-        // Return a high distance value to indicate "no obstacle"
-        return -1; // You can adjust this value based on your application
-    }
-    
-    // Calculate the distance in centimeters
-    // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
->>>>>>> 21ebf9859239b4cea3d3f21445d4d88a6a43bb4b
     float distance = duration * 0.034 / 2;
 
     // Ensure the reading is within a valid range
