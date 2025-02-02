@@ -16,6 +16,7 @@
 #define RED 777
 #define BLUE 888
 #define GREEN 999
+#define BLACK -1
 
 // Ultrasonic Sensor Pins
 #define TRIG 2 // Trigger Pin
@@ -149,9 +150,10 @@ void moveForward(int speed, int duration) {
     analogWrite(ENA, speed);
     analogWrite(ENB, speed);
 
-    delay(duration);
+    if (duration > 0)
+        delay(duration);
 
-    stop();
+        stop();
 }
 
 void Uturn() {
@@ -173,6 +175,73 @@ void Uturn() {
     }
 
     stop();
+}
+
+// Turn Left: left motor goes backward, right motor goes forward
+void turnLeft(int speed) {
+    Serial.println("Turning Left");
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    analogWrite(ENA, speed);
+    
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENB, speed);
+    
+    delay(700); // Adjust for a 90° turn
+    stop();
+}
+
+// Turn Right: left motor goes forward, right motor goes backward
+void turnRight(int speed) {
+    Serial.println("Turning Right");
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, speed);
+    
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+    analogWrite(ENB, speed);
+    
+    delay(700); // Adjust for a 90° turn
+    stop();
+}
+
+void challenge2() {
+    int motorSpeed = 200;  // Set the motor speed (adjust as needed)
+
+    while (true) {  // Continuous loop
+        float distance = getDistance();
+        
+        if (distance > 15) {
+            // No obstacle: keep going straight.
+            moveForward(motorSpeed, -1);
+        } else {
+            // Obstacle detected: stop the robot.
+            stop();
+            delay(100);  // Brief pause to stabilize
+            
+            // Read the ground color.
+            int currentColor = detectColor();
+            if (currentColor == BLACK) {
+                // On a black square: stop permanently.
+                Serial.println("Obstacle detected on a BLACK square. Stopping.");
+                stop();
+                while (true) {
+                    delay(1000);  // Remain stopped indefinitely.
+                }
+            } else if (currentColor == BLUE) {
+                turnLeft(motorSpeed);
+            } else if (currentColor == GREEN) {
+                turnRight(motorSpeed);
+            } else if (currentColor == RED) {
+                Uturn();
+            } else {
+                // In case of an unexpected value, continue forward.
+                Serial.println("Unknown color detected; continuing straight.");
+            }
+        }
+    }
 }
 
 // Stop motors
