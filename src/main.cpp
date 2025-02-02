@@ -85,13 +85,19 @@ void setup() {
 
 // Function to measure distance using ultrasonic sensor
 float getDistance() {
+    // Ensure the trigger pin is low
     digitalWrite(TRIG, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(2);  // Wait a brief moment
+    
+    // Send a 10 microsecond pulse to trigger the ultrasonic burst
     digitalWrite(TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG, LOW);
-    return pulseIn(ECHO, HIGH) * 0.034 / 2; // Convert to cm
 }
+
+// Function for challenge 2:
+
+
 
 // Function to detect color frequency
 int getColorFrequency(int s2State, int s3State) {
