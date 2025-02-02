@@ -3,12 +3,12 @@
 #include <Servo.h>
 
 // Motor Pins
-#define ENA 9   // Left motor speed (PWM)
-#define ENB 10  // Right motor speed (PWM)
-#define IN1 8   // Left motor direction 1
-#define IN2 7   // Left motor direction 2
-#define IN3 11  // Right motor direction 1
-#define IN4 12  // Right motor direction 2
+#define ENA 9  // Left motor speed (PWM)
+#define ENB 10 // Right motor speed (PWM)
+#define IN1 8  // Left motor direction 1
+#define IN2 7  // Left motor direction 2
+#define IN3 11 // Right motor direction 1
+#define IN4 12 // Right motor direction 2
 
 #define OPEN 40
 #define CLOSE 90
@@ -18,31 +18,34 @@
 #define GREEN 999
 
 // Ultrasonic Sensor Pins
-#define TRIG 2  // Trigger Pin
-#define ECHO 3  // Echo Pin
+#define TRIG 2 // Trigger Pin
+#define ECHO 3 // Echo Pin
 
 // Servo Motor Pin
-#define SERVO_PIN 6  
+#define SERVO_PIN 6
 
-#define S0 0  // Frequency scaling selection
-#define S1 1  // Frequency scaling selection
-#define S2 4  // Color selection
-#define S3 5  // Color selection
+#define S0 0   // Frequency scaling selection
+#define S1 1   // Frequency scaling selection
+#define S2 4   // Color selection
+#define S3 5   // Color selection
 #define OUT 13 // Color frequency output
-
 
 Servo myServo;
 
-bool isStopped = false;  // Track if robot is stopped
+void stop();
+void setServoAngle(int angle);
+void Uturn();
 
 // Function to move the servo to a specific angle
 void setServoAngle(int angle) {
-    if (angle < 0) angle = 0;
-    if (angle > 180) angle = 180;
-    
+    if (angle < 0)
+        angle = 0;
+    if (angle > 180)
+        angle = 180;
+
     Serial.print("Moving Servo to: ");
     Serial.println(angle);
-    
+
     myServo.write(angle);
     delay(500);
 }
@@ -75,18 +78,9 @@ void setup() {
 
     // Servo Setup
     myServo.attach(SERVO_PIN);
-    setServoAngle(20);  // Initialize servo at 0 degrees
+    setServoAngle(20); // Initialize servo at 0 degrees
 
     Serial.println("Robot Initialized.");
-}
-
-// Function to release the flag
-void releaseFlag() {
-    Serial.println("Releasing flag...");
-    setServoAngle(90);  // Move servo to 90 degrees (release position)
-    delay(5000);        // Wait for 5 seconds
-    setServoAngle(20);  // Move servo to 20 degrees
-    Serial.println("Flag released.");
 }
 
 // Function to measure distance using ultrasonic sensor
@@ -99,15 +93,6 @@ float getDistance() {
     digitalWrite(TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG, LOW);
-    
-    // Read the duration of the echo pulse in microseconds
-    long duration = pulseIn(ECHO, HIGH);
-    
-    // Calculate the distance in centimeters
-    // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
-    float distance = duration * 0.034 / 2;
-    
-    return distance;
 }
 
 // Function for challenge 2:
@@ -128,26 +113,57 @@ int detectColor() {
     int green = getColorFrequency(HIGH, HIGH);
     int blue = getColorFrequency(LOW, HIGH);
 
-    Serial.print("R: "); Serial.print(red);
-    Serial.print(" G: "); Serial.print(green);
-    Serial.print(" B: "); Serial.println(blue);
+    Serial.print("R: \n");
+    Serial.print(red);
+    Serial.print("G: \n");
+    Serial.print(green);
+    Serial.print("B: \n");
+    Serial.println(blue);
 
-    if (green < red && green < blue) return GREEN; // Green detection condition
-    if (red < green && red < blue) return RED;
-    if (blue < red && blue < green) return BLUE;
+    if (green < red && green < blue)
+        return GREEN; // Green detection condition
+    if (red < green && red < blue)
+        return RED;
+    if (blue < red && blue < green)
+        return BLUE;
 
     return -1;
 }
 
 // Move forward
-void moveForward(int speed) {
+void moveForward(int speed, int duration) {
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
-    analogWrite(ENA, speed);
-
     digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
+
+    analogWrite(ENA, speed);
     analogWrite(ENB, speed);
+
+    delay(duration);
+
+    stop();
+}
+
+void Uturn() {
+    stop();
+
+    for (int i = 1; i < 20; i++) {
+        if (i % 2) {
+            digitalWrite(IN3, HIGH);
+            digitalWrite(IN4, LOW);
+            analogWrite(ENB, 64);
+        } else {
+            digitalWrite(IN1, LOW);
+            digitalWrite(IN2, HIGH);
+            analogWrite(ENA, 64);
+        }
+        delay(1000);
+        stop();
+        delay(500);
+    }
+
+    stop();
 }
 
 // Stop motors
@@ -161,4 +177,6 @@ void stop() {
 }
 
 void loop() {
+    Uturn();
+    delay(10000);
 }
