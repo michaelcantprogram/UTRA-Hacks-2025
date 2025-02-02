@@ -375,7 +375,7 @@ void challenge1() {
     curr = detectColor();
     delay(200);
 
-    while (num < 4) {
+    while (num < 5) {
         int i = 0;
         moveForward(400);
         while (detectColor() == curr || detectColor() == prev) {
