@@ -382,19 +382,19 @@ void challenge1() {
 
     while (num < 4) {
         int i = 0;
-        moveForward(200);
+        moveForward(400);
         while (detectColor() == curr || detectColor() == prev) {
             i++;
-            moveBackward(200);
+            moveBackward(400);
             if (i % 2 == 0) {
                 turnLeft(min(100 * i, 800));
             } else {
                 turnRight(min(100 * i, 800));
             }
-            moveForward(200);
+            moveForward(400);
             delay(500);
         }
-        moveBackward(200);
+        moveBackward(400);
         num++;
         while (detectColor() == curr) {
             moveForward(30);
