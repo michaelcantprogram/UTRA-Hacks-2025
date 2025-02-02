@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Ultrasonic.h>
 #include <Servo.h>
+#include <HCSR04.h>
 
 // Motor Pins
 #define ENA 9  // Left motor speed (PWM)
@@ -21,6 +22,9 @@
 // Ultrasonic Sensor Pins
 #define TRIG 2 // Trigger Pin
 #define ECHO 3 // Echo Pin
+
+byte triggerPin = 2;
+byte echoPin = 3;
 
 // Servo Motor Pin
 #define SERVO_PIN 6
@@ -67,8 +71,10 @@ void setup() {
     pinMode(IN4, OUTPUT);
 
     // Ultrasonic Sensor Setup
-    pinMode(TRIG, OUTPUT);
-    pinMode(ECHO, INPUT);
+    // pinMode(TRIG, OUTPUT);
+    // pinMode(ECHO, INPUT);
+    HCSR04.begin(triggerPin, echoPin);
+
 
     // Color Sensor Setup
     pinMode(S0, OUTPUT);
@@ -303,47 +309,34 @@ void turnRight(int duration = 400) {
     stop();
 }
 
-// void challenge2() {
-//     int motorSpeed = 200;  // Set the motor speed (adjust as needed)
+void challenge2() {
+    while (1) {
+        moveForward(0);
 
-//     while (true) {  // Continuous loop
-//         float distance = getDistance();
+        if (detectColor() != BLACK && getDistance() > 25) {
+            continue;
+        }
 
-//         if (distance > 15) {
-//             // No obstacle: keep going straight.
-//             Serial.println("Distance > 15");
-//             moveForward(motorSpeed, -1);
-//         } else {
-//             // Obstacle detected: stop the robot.
-//             Serial.println("Distance <= 15");
-//             stop();
-//             delay(100);  // Brief pause to stabilize
+        if (detectColor() == BLACK && getDistance() <= 25) {
+            stop();
+            return;
+        } else if (detectColor() == BLACK) {
+            stop();
+            moveBackward(2000);
+        }
 
-//             // Read the ground color.
-//             int currentColor = detectColor();
-//             if (currentColor == BLACK) {
-//                 // On a black square: stop permanently.
-//                 Serial.println("Obstacle detected on a BLACK square. Stopping.");
-//                 stop();
-//                 while (true) {
-//                     delay(1000);  // Remain stopped indefinitely.
-//                 }
-//             } else if (currentColor == BLUE) {
-//                 Serial.println("Obstacle detected on a BLUE square.");
-//                 turnLeft(motorSpeed);
-//             } else if (currentColor == GREEN) {
-//                 Serial.println("Obstacle detected on a GREEN square.");
-//                 turnRight(motorSpeed);
-//             } else if (currentColor == RED) {
-//                 Serial.println("Obstacle detected on a RED square.");
-//                 Uturn();
-//             } else {
-//                 // In case of an unexpected value, continue forward.
-//                 Serial.println("Unknown color detected; continuing straight.");
-//             }
-//         }
-//     }
-// }
+        if (detectColor() == RED) {
+            stop();
+            Uturn();
+        } else if (detectColor() == GREEN) {
+            stop();
+            turnRight(400);
+        } else if (detectColor() == BLUE) {
+            stop();
+            turnLeft(400);
+        }
+    }
+}
 
 // Stop motors
 void stop() {
@@ -418,9 +411,12 @@ void loop() {
     // while (1)
     //     ;
 
-    distance = ultrasonic.read();
+    double* distances = HCSR04.measureDistanceCm();
   
-    Serial.print("Distance in CM: ");
-    Serial.println(distance);
-    delay(1000);
+  Serial.print("1: ");
+  Serial.print(distances[0]);
+  Serial.println(" cm");
+  
+  Serial.println("---");
+  delay(250);
 }
