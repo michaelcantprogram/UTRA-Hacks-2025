@@ -179,12 +179,12 @@ int detectColor() {
     green /= numSamples;
     blue /= numSamples;
 
-    Serial.print("Raw R: ");
-    Serial.print(red);
-    Serial.print(" G: ");
-    Serial.print(green);
-    Serial.print(" B: ");
-    Serial.println(blue);
+    // Serial.print("Raw R: ");
+    // Serial.print(red);
+    // Serial.print(" G: ");
+    // Serial.print(green);
+    // Serial.print(" B: ");
+    // Serial.println(blue);
 
     // Normalize readings by computing the inverse (pulse width is inversely proportional to color intensity)
     float sum = red + green + blue;
@@ -192,12 +192,12 @@ int detectColor() {
     float greenRatio = 1.0 / green;
     float blueRatio = 1.0 / blue;
 
-    Serial.print("Normalized R: ");
-    Serial.print(redRatio, 3);
-    Serial.print(" G: ");
-    Serial.print(greenRatio, 3);
-    Serial.print(" B: ");
-    Serial.println(blueRatio, 3);
+    // Serial.print("Normalized R: ");
+    // Serial.print(redRatio, 3);
+    // Serial.print(" G: ");
+    // Serial.print(greenRatio, 3);
+    // Serial.print(" B: ");
+    // Serial.println(blueRatio, 3);
 
     if (sum > 450) {
         return BLACK;
@@ -208,20 +208,25 @@ int detectColor() {
     int bluegreendiff = abs(blue - green);
 
     if (redbluediff < 20 && redgreendiff < 20 && bluegreendiff < 20) {
+        Serial.println("Black");
         return BLACK;
     }
 
     // Determine dominant color using normalized values
     if (greenRatio > redRatio * 1.1 && greenRatio > blueRatio * 1.1) {
+        Serial.println("Green");
         return GREEN;
     }
     if (redRatio > greenRatio * 1.1 && redRatio > blueRatio * 1.1) {
+        Serial.println("Red");
         return RED;
     }
     if (blueRatio > redRatio * 1.1 && blueRatio > greenRatio * 1.1) {
+        Serial.println("Blue");
         return BLUE;
     }
 
+    Serial.println("Black");
     return BLACK; // Default case if no dominant color is found
 }
 
