@@ -142,17 +142,18 @@ void moveForward(int speed, int duration) {
 void Uturn() {
     stop();
 
-    for (int i = 1; i < 20; i++) {
+    for (int i = 1; i <= 6 ; i++) {
         if (i % 2) {
             digitalWrite(IN3, HIGH);
             digitalWrite(IN4, LOW);
             analogWrite(ENB, 64);
+            delay(800);
         } else {
             digitalWrite(IN1, LOW);
             digitalWrite(IN2, HIGH);
             analogWrite(ENA, 64);
+            delay(850);
         }
-        delay(1000);
         stop();
         delay(500);
     }
