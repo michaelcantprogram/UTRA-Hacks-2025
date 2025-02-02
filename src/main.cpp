@@ -93,6 +93,15 @@ float getDistance() {
     digitalWrite(TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG, LOW);
+    
+    // Read the duration of the echo pulse in microseconds
+    long duration = pulseIn(ECHO, HIGH);
+    
+    // Calculate the distance in centimeters
+    // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
+    float distance = duration * 0.034 / 2;
+    
+    return distance;
 }
 
 // Function for challenge 2:
