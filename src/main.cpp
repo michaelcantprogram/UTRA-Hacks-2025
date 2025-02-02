@@ -16,6 +16,7 @@
 #define RED 777
 #define BLUE 888
 #define GREEN 999
+#define BLACK -1
 
 // Ultrasonic Sensor Pins
 #define TRIG 2 // Trigger Pin
@@ -85,13 +86,28 @@ void setup() {
 
 // Function to measure distance using ultrasonic sensor
 float getDistance() {
+    // Ensure the trigger pin is low
     digitalWrite(TRIG, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(2);  // Wait a brief moment
+    
+    // Send a 10 microsecond pulse to trigger the ultrasonic burst
     digitalWrite(TRIG, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG, LOW);
-    return pulseIn(ECHO, HIGH) * 0.034 / 2; // Convert to cm
+    
+    // Read the duration of the echo pulse in microseconds
+    long duration = pulseIn(ECHO, HIGH);
+    
+    // Calculate the distance in centimeters
+    // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
+    float distance = duration * 0.034 / 2;
+    
+    return distance;
 }
+
+// Function for challenge 2:
+
+
 
 // Function to detect color frequency
 int getColorFrequency(int s2State, int s3State) {
@@ -134,9 +150,10 @@ void moveForward(int speed, int duration) {
     analogWrite(ENA, speed);
     analogWrite(ENB, speed);
 
-    delay(duration);
+    if (duration > 0)
+        delay(duration);
 
-    stop();
+        stop();
 }
 
 void Uturn() {
@@ -159,6 +176,73 @@ void Uturn() {
     }
 
     stop();
+}
+
+// Turn Left: left motor goes backward, right motor goes forward
+void turnLeft(int speed) {
+    Serial.println("Turning Left");
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    analogWrite(ENA, speed);
+    
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENB, speed);
+    
+    delay(700); // Adjust for a 90° turn
+    stop();
+}
+
+// Turn Right: left motor goes forward, right motor goes backward
+void turnRight(int speed) {
+    Serial.println("Turning Right");
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENA, speed);
+    
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+    analogWrite(ENB, speed);
+    
+    delay(700); // Adjust for a 90° turn
+    stop();
+}
+
+void challenge2() {
+    int motorSpeed = 200;  // Set the motor speed (adjust as needed)
+
+    while (true) {  // Continuous loop
+        float distance = getDistance();
+        
+        if (distance > 15) {
+            // No obstacle: keep going straight.
+            moveForward(motorSpeed, -1);
+        } else {
+            // Obstacle detected: stop the robot.
+            stop();
+            delay(100);  // Brief pause to stabilize
+            
+            // Read the ground color.
+            int currentColor = detectColor();
+            if (currentColor == BLACK) {
+                // On a black square: stop permanently.
+                Serial.println("Obstacle detected on a BLACK square. Stopping.");
+                stop();
+                while (true) {
+                    delay(1000);  // Remain stopped indefinitely.
+                }
+            } else if (currentColor == BLUE) {
+                turnLeft(motorSpeed);
+            } else if (currentColor == GREEN) {
+                turnRight(motorSpeed);
+            } else if (currentColor == RED) {
+                Uturn();
+            } else {
+                // In case of an unexpected value, continue forward.
+                Serial.println("Unknown color detected; continuing straight.");
+            }
+        }
+    }
 }
 
 // Stop motors
