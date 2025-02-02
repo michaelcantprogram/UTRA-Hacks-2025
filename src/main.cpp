@@ -33,6 +33,8 @@
 
 Servo myServo;
 
+bool isStopped = false;
+
 void stop();
 void setServoAngle(int angle);
 void Uturn();
@@ -84,30 +86,35 @@ void setup() {
     Serial.println("Robot Initialized.");
 }
 
-// Function to measure distance using ultrasonic sensor
 float getDistance() {
-    // Ensure the trigger pin is low
     digitalWrite(TRIG, LOW);
-    delayMicroseconds(2);  // Wait a brief moment
-    
-    // Send a 10 microsecond pulse to trigger the ultrasonic burst
+    delayMicroseconds(5); // Ensure a clean LOW pulse
     digitalWrite(TRIG, HIGH);
-    delayMicroseconds(10);
+    delayMicroseconds(10); // Send a 10µs pulse (as required)
     digitalWrite(TRIG, LOW);
-    
-    // Read the duration of the echo pulse in microseconds
+
+    // Measure the echo pulse duration
     long duration = pulseIn(ECHO, HIGH);
-    
-    // Calculate the distance in centimeters
-    // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
+
+    if (duration == 0) {
+        return 999; // Indicates no valid measurement
+    }
+
+    // Convert duration to distance in cm (Using formula from timing diagram)
     float distance = duration * 0.034 / 2;
-    
+
+    // Ensure the reading is within a valid range
+    if (distance < 2 || distance > 400) {
+        Serial.println("Out-of-range reading.");
+        return 999;
+    }
+
+    delay(50); // Small delay to stabilize readings
+
     return distance;
 }
 
 // Function for challenge 2:
-
-
 
 // Function to detect color frequency
 int getColorFrequency(int s2State, int s3State) {
@@ -117,133 +124,219 @@ int getColorFrequency(int s2State, int s3State) {
     return pulseIn(OUT, LOW);
 }
 
-// Function to read color
-int detectColor() {
-    int red = getColorFrequency(LOW, LOW);
-    int green = getColorFrequency(HIGH, HIGH);
-    int blue = getColorFrequency(LOW, HIGH);
+// Function to read Red Pulse Widths
+int getRedPW() {
+    // Set sensor to read Red only
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, LOW);
+    // Define integer to represent Pulse Width
+    int PW;
+    // Read the output Pulse Width
+    PW = pulseIn(OUT, LOW);
+    // Return the value
+    return PW;
+}
 
-    Serial.print("R: \n");
+// Function to read Green Pulse Widths
+int getGreenPW() {
+    // Set sensor to read Green only
+    digitalWrite(S2, HIGH);
+    digitalWrite(S3, HIGH);
+    // Define integer to represent Pulse Width
+    int PW;
+    // Read the output Pulse Width
+    PW = pulseIn(OUT, LOW);
+    // Return the value
+    return PW;
+}
+
+// Function to read Blue Pulse Widths
+int getBluePW() {
+    // Set sensor to read Blue only
+    digitalWrite(S2, LOW);
+    digitalWrite(S3, HIGH);
+    // Define integer to represent Pulse Width
+    int PW;
+    // Read the output Pulse Width
+    PW = pulseIn(OUT, LOW);
+    // Return the value
+    return PW;
+}
+
+int detectColor() {
+    int numSamples = 5; // Take multiple readings for accuracy
+    int red = 0, green = 0, blue = 0;
+
+    for (int i = 0; i < numSamples; i++) {
+        red += getRedPW();
+        green += getGreenPW();
+        blue += getBluePW();
+        delay(10); // Small delay between samples
+    }
+
+    // Average the readings
+    red /= numSamples;
+    green /= numSamples;
+    blue /= numSamples;
+
+    Serial.print("Raw R: ");
     Serial.print(red);
-    Serial.print("G: \n");
+    Serial.print(" G: ");
     Serial.print(green);
-    Serial.print("B: \n");
+    Serial.print(" B: ");
     Serial.println(blue);
 
-    if (green < red && green < blue)
-        return GREEN; // Green detection condition
-    if (red < green && red < blue)
-        return RED;
-    if (blue < red && blue < green)
-        return BLUE;
+    // Normalize readings by computing the inverse (pulse width is inversely proportional to color intensity)
+    float sum = red + green + blue;
+    float redRatio = 1.0 / red;
+    float greenRatio = 1.0 / green;
+    float blueRatio = 1.0 / blue;
 
-    return -1;
+    Serial.print("Normalized R: ");
+    Serial.print(redRatio, 3);
+    Serial.print(" G: ");
+    Serial.print(greenRatio, 3);
+    Serial.print(" B: ");
+    Serial.println(blueRatio, 3);
+
+    if (sum > 450) {
+        return BLACK;
+    }
+
+    int redbluediff = abs(red - blue);
+    int redgreendiff = abs(red - green);
+    int bluegreendiff = abs(blue - green);
+
+    if (redbluediff < 20 && redgreendiff < 20 && bluegreendiff < 20) {
+        return BLACK;
+    }
+
+    // Determine dominant color using normalized values
+    if (greenRatio > redRatio * 1.1 && greenRatio > blueRatio * 1.1) {
+        return GREEN;
+    }
+    if (redRatio > greenRatio * 1.1 && redRatio > blueRatio * 1.1) {
+        return RED;
+    }
+    if (blueRatio > redRatio * 1.1 && blueRatio > greenRatio * 1.1) {
+        return BLUE;
+    }
+
+    return BLACK; // Default case if no dominant color is found
 }
 
 // Move forward
-void moveForward(int speed, int duration) {
+void moveForward(int duration) {
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
     digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
 
-    analogWrite(ENA, speed);
-    analogWrite(ENB, speed);
+    analogWrite(ENA, 1);
+    analogWrite(ENB, 1);
 
-    if (duration > 0)
+    if (duration > 0) {
         delay(duration);
-
         stop();
+    }
+}
+
+void moveBackward(int duration) {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+
+    analogWrite(ENA, 32);
+    analogWrite(ENB, 32);
+
+    if (duration > 0) {
+        delay(duration);
+        stop();
+    }
 }
 
 void Uturn() {
     stop();
 
-    for (int i = 1; i <= 6 ; i++) {
-        if (i % 2) {
-            digitalWrite(IN3, HIGH);
-            digitalWrite(IN4, LOW);
-            analogWrite(ENB, 64);
-            delay(800);
-        } else {
-            digitalWrite(IN1, LOW);
-            digitalWrite(IN2, HIGH);
-            analogWrite(ENA, 64);
-            delay(850);
-        }
-        stop();
-        delay(500);
-    }
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+    analogWrite(ENA, 32);
+    analogWrite(ENB, 32);
+    delay(780);
 
     stop();
 }
 
 // Turn Left: left motor goes backward, right motor goes forward
-void turnLeft(int speed) {
-    Serial.println("Turning Left");
+void turnLeft(int duration = 400) {
+    stop();
     digitalWrite(IN1, LOW);
     digitalWrite(IN2, HIGH);
-    analogWrite(ENA, speed);
-    
     digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
-    analogWrite(ENB, speed);
-    
-    delay(700); // Adjust for a 90° turn
+    analogWrite(ENA, 32);
+    analogWrite(ENB, 32);
+    delay(duration);
     stop();
 }
 
 // Turn Right: left motor goes forward, right motor goes backward
-void turnRight(int speed) {
-    Serial.println("Turning Right");
+void turnRight(int duration = 400) {
+    stop();
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
-    analogWrite(ENA, speed);
-    
     digitalWrite(IN3, LOW);
     digitalWrite(IN4, HIGH);
-    analogWrite(ENB, speed);
-    
-    delay(700); // Adjust for a 90° turn
+    analogWrite(ENA, 32);
+    analogWrite(ENB, 32);
+    delay(duration);
     stop();
 }
 
-void challenge2() {
-    int motorSpeed = 200;  // Set the motor speed (adjust as needed)
+// void challenge2() {
+//     int motorSpeed = 200;  // Set the motor speed (adjust as needed)
 
-    while (true) {  // Continuous loop
-        float distance = getDistance();
-        
-        if (distance > 15) {
-            // No obstacle: keep going straight.
-            moveForward(motorSpeed, -1);
-        } else {
-            // Obstacle detected: stop the robot.
-            stop();
-            delay(100);  // Brief pause to stabilize
-            
-            // Read the ground color.
-            int currentColor = detectColor();
-            if (currentColor == BLACK) {
-                // On a black square: stop permanently.
-                Serial.println("Obstacle detected on a BLACK square. Stopping.");
-                stop();
-                while (true) {
-                    delay(1000);  // Remain stopped indefinitely.
-                }
-            } else if (currentColor == BLUE) {
-                turnLeft(motorSpeed);
-            } else if (currentColor == GREEN) {
-                turnRight(motorSpeed);
-            } else if (currentColor == RED) {
-                Uturn();
-            } else {
-                // In case of an unexpected value, continue forward.
-                Serial.println("Unknown color detected; continuing straight.");
-            }
-        }
-    }
-}
+//     while (true) {  // Continuous loop
+//         float distance = getDistance();
+
+//         if (distance > 15) {
+//             // No obstacle: keep going straight.
+//             Serial.println("Distance > 15");
+//             moveForward(motorSpeed, -1);
+//         } else {
+//             // Obstacle detected: stop the robot.
+//             Serial.println("Distance <= 15");
+//             stop();
+//             delay(100);  // Brief pause to stabilize
+
+//             // Read the ground color.
+//             int currentColor = detectColor();
+//             if (currentColor == BLACK) {
+//                 // On a black square: stop permanently.
+//                 Serial.println("Obstacle detected on a BLACK square. Stopping.");
+//                 stop();
+//                 while (true) {
+//                     delay(1000);  // Remain stopped indefinitely.
+//                 }
+//             } else if (currentColor == BLUE) {
+//                 Serial.println("Obstacle detected on a BLUE square.");
+//                 turnLeft(motorSpeed);
+//             } else if (currentColor == GREEN) {
+//                 Serial.println("Obstacle detected on a GREEN square.");
+//                 turnRight(motorSpeed);
+//             } else if (currentColor == RED) {
+//                 Serial.println("Obstacle detected on a RED square.");
+//                 Uturn();
+//             } else {
+//                 // In case of an unexpected value, continue forward.
+//                 Serial.println("Unknown color detected; continuing straight.");
+//             }
+//         }
+//     }
+// }
 
 // Stop motors
 void stop() {
@@ -255,7 +348,64 @@ void stop() {
     analogWrite(ENB, 0);
 }
 
+void challenge1() {
+    setServoAngle(CLOSE);
+    int prev = BLACK, curr = BLACK;
+    int num = 0;
+
+    moveForward(2000);
+    int j = 0;
+    while (detectColor() == BLACK) {
+        j++;
+        moveBackward(2000);
+        if (j % 2 == 0) {
+            turnLeft(min(100 * j, 800));
+        } else {
+            turnRight(min(100 * j, 800));
+        }
+        moveForward(2000);
+        delay(500);
+    }
+    moveBackward(2000);
+    while (detectColor() == curr) {
+        moveForward(30);
+        delay(10);
+    }
+    num++;
+    curr = detectColor();
+    delay(200);
+
+    while (num < 4) {
+        int i = 0;
+        moveForward(200);
+        while (detectColor() == curr || detectColor() == prev) {
+            i++;
+            moveBackward(200);
+            if (i % 2 == 0) {
+                turnLeft(min(100 * i, 800));
+            } else {
+                turnRight(min(100 * i, 800));
+            }
+            moveForward(200);
+            delay(500);
+        }
+        moveBackward(200);
+        num++;
+        while (detectColor() == curr) {
+            moveForward(30);
+            delay(10);
+        }
+        prev = curr;
+        curr = detectColor();
+        delay(200);
+    }
+
+    moveBackward(600);
+    setServoAngle(OPEN);
+}
+
 void loop() {
-    Uturn();
-    delay(10000);
+    challenge1();
+    while (1)
+        ;
 }
