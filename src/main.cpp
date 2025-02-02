@@ -97,6 +97,12 @@ float getDistance() {
     
     // Read the duration of the echo pulse in microseconds
     long duration = pulseIn(ECHO, HIGH);
+
+    if (duration == 0) {
+        Serial.println("No echo received. Returning max distance.");
+        // Return a high distance value to indicate "no obstacle"
+        return -1; // You can adjust this value based on your application
+    }
     
     // Calculate the distance in centimeters
     // (Speed of sound ~0.034 cm per microsecond, divided by 2 for the round trip)
@@ -213,7 +219,7 @@ void challenge2() {
     while (true) {  // Continuous loop
         float distance = getDistance();
         
-        if (distance > 15) {
+        if (distance > 15 || distance < 0) {
             // No obstacle: keep going straight.
             moveForward(motorSpeed, -1);
         } else {
