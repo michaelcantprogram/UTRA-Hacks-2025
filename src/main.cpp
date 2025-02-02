@@ -313,11 +313,11 @@ void challenge2() {
     while (1) {
         moveForward(0);
 
-        if (detectColor() != BLACK && getDistance() > 25) {
+        if (detectColor() != BLACK && *HCSR04.measureDistanceCm() > 20) {
             continue;
         }
 
-        if (detectColor() == BLACK && getDistance() <= 25) {
+        if (detectColor() == BLACK && *HCSR04.measureDistanceCm() <= 25) {
             stop();
             return;
         } else if (detectColor() == BLACK) {
